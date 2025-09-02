@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
           }
         },
         target: 'es2015',
-        minify: 'esbuild'
+        minify: 'terser'
       }
     };
 });
