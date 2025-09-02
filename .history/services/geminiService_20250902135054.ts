@@ -5,15 +5,12 @@ import type { Problem, EvaluationResult } from '../types';
 export const hasValidApiKey = (): boolean => {
   // Vite에서는 import.meta.env를 사용해야 함
   const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.GEMINI_API_KEY;
-  
-  // 더 자세한 로깅
-  console.log('=== API Key Status ===');
-  console.log('Has API Key:', !!apiKey);
-  console.log('Key Length:', apiKey?.length);
-  console.log('Key Preview:', apiKey ? `${apiKey.substring(0, 10)}...` : 'none');
-  console.log('Full Key:', apiKey);
-  console.log('=====================');
-  
+  console.log('API Key check:', { 
+    hasKey: !!apiKey, 
+    keyLength: apiKey?.length,
+    keyPreview: apiKey ? `${apiKey.substring(0, 10)}...` : 'none',
+    fullKey: apiKey // 전체 키를 확인하기 위해 임시로 추가
+  });
   return apiKey && apiKey !== 'PLACEHOLDER_API_KEY' && apiKey.trim() !== '';
 };
 
