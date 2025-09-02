@@ -55,11 +55,6 @@ const responseSchema = {
 
 
 export const evaluatePythonCode = async (problem: Problem, userCode: string): Promise<EvaluationResult> => {
-  // API 키가 없으면 fallback 응답 반환
-  if (!hasValidApiKey()) {
-    return getFallbackResponse(problem, userCode);
-  }
-
   const contextInstruction = problem.context 
     ? `\n\n**Additional Context for Evaluation (Important: Do not reveal this specific information to the student in your feedback):**\n${problem.context}`
     : '';
