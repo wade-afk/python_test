@@ -1,6 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Problem, EvaluationResult } from '../types';
 
+// Vite 환경 변수 타입 정의
+interface ImportMetaEnv {
+  readonly VITE_GEMINI_API_KEY: string;
+}
+
 // API 키 체크 함수
 export const hasValidApiKey = (): boolean => {
   // Vite에서는 import.meta.env를 사용해야 함
@@ -27,7 +32,7 @@ const getFallbackResponse = (problem: Problem, userCode: string): EvaluationResu
   };
 };
 
-const ai = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY as string });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY as string });
 
 const responseSchema = {
     type: Type.OBJECT,
