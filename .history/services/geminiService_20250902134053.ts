@@ -4,7 +4,7 @@ import type { Problem, EvaluationResult } from '../types';
 // API 키 체크 함수
 export const hasValidApiKey = (): boolean => {
   // Vite에서는 import.meta.env를 사용해야 함
-  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
   console.log('API Key check:', { 
     hasKey: !!apiKey, 
     keyLength: apiKey?.length,
@@ -23,7 +23,7 @@ const getFallbackResponse = (problem: Problem, userCode: string): EvaluationResu
   };
 };
 
-const ai = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY as string });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY as string });
 
 const responseSchema = {
     type: Type.OBJECT,
@@ -57,6 +57,32 @@ const responseSchema = {
         }
     },
     required: ["output", "isCorrect", "feedback", "syntaxError"]
+};
+
+// API 키 테스트 함수
+export const testApiKey = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    if (!hasValidApiKey()) {
+      return { success: false, message: 'API key is not configured' };
+    }
+    
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: "Hello, this is a test message. Please respond with 'API is working' if you can see this.",
+    });
+    
+    if (response.text && response.text.includes('API is working')) {
+      return { success: true, message: 'API key is working correctly' };
+    } else {
+      return { success: false, message: 'API responded but with unexpected content' };
+    }
+  } catch (error) {
+    console.error('API key test failed:', error);
+    return { 
+      success: false, 
+      message: `API test failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    };
+  }
 };
 
 

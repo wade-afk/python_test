@@ -4,7 +4,7 @@ import type { Problem, EvaluationResult } from '../types';
 // API 키 체크 함수
 export const hasValidApiKey = (): boolean => {
   // Vite에서는 import.meta.env를 사용해야 함
-  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
   console.log('API Key check:', { 
     hasKey: !!apiKey, 
     keyLength: apiKey?.length,
@@ -23,7 +23,16 @@ const getFallbackResponse = (problem: Problem, userCode: string): EvaluationResu
   };
 };
 
-const ai = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY as string });
+// Gemini API 초기화 전에 API 키 유효성 확인
+const getApiKey = (): string => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured');
+  }
+  return apiKey;
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 const responseSchema = {
     type: Type.OBJECT,

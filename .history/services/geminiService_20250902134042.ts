@@ -4,7 +4,7 @@ import type { Problem, EvaluationResult } from '../types';
 // API 키 체크 함수
 export const hasValidApiKey = (): boolean => {
   // Vite에서는 import.meta.env를 사용해야 함
-  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
   console.log('API Key check:', { 
     hasKey: !!apiKey, 
     keyLength: apiKey?.length,
@@ -23,7 +23,16 @@ const getFallbackResponse = (problem: Problem, userCode: string): EvaluationResu
   };
 };
 
-const ai = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY as string });
+// Gemini API 초기화 전에 API 키 유효성 확인
+const getApiKey = (): string => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured');
+  }
+  return apiKey;
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 const responseSchema = {
     type: Type.OBJECT,
@@ -138,11 +147,28 @@ export const evaluatePythonCode = async (problem: Problem, userCode: string): Pr
     }
   } catch (error) {
     console.error("Error evaluating code with Gemini:", error);
-    // Fallback error message
+    
+    // 더 자세한 에러 정보 제공
+    let errorMessage = "An error occurred while trying to evaluate the code.";
+    let feedback = "Could not get a valid response from the evaluation service.";
+    
+    if (error instanceof Error) {
+      if (error.message.includes('API key')) {
+        errorMessage = "API key configuration error.";
+        feedback = "Please check your Gemini API key configuration.";
+      } else if (error.message.includes('quota') || error.message.includes('limit')) {
+        errorMessage = "API quota exceeded.";
+        feedback = "You may have reached your Gemini API usage limit. Please try again later.";
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = "Network connection error.";
+        feedback = "Please check your internet connection and try again.";
+      }
+    }
+    
     return {
-      output: "An error occurred while trying to evaluate the code.",
+      output: errorMessage,
       isCorrect: false,
-      feedback: "Could not get a valid response from the evaluation service. Please check your connection or the API key.",
+      feedback: feedback,
       syntaxError: null,
     };
   }

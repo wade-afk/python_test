@@ -1,10 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Problem, EvaluationResult } from '../types';
 
+// 환경 변수 타입 정의
+declare global {
+  interface ImportMetaEnv {
+    VITE_GEMINI_API_KEY: string;
+    GEMINI_API_KEY: string;
+  }
+}
+
 // API 키 체크 함수
 export const hasValidApiKey = (): boolean => {
   // Vite에서는 import.meta.env를 사용해야 함
-  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (import.meta as any).env?.GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
   console.log('API Key check:', { 
     hasKey: !!apiKey, 
     keyLength: apiKey?.length,
@@ -23,7 +31,7 @@ const getFallbackResponse = (problem: Problem, userCode: string): EvaluationResu
   };
 };
 
-const ai = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY as string });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY as string });
 
 const responseSchema = {
     type: Type.OBJECT,
