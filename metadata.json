@@ -1,0 +1,5 @@
+{
+  "name": "Interactive Python Quiz",
+  "description": "An interactive web application for students to solve Python programming problems. The app presents a series of challenges, allows students to write and 'run' code in the browser, and provides instant feedback and results upon completion.",
+  "requestFramePermissions": []
+}
