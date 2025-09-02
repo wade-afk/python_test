@@ -32,16 +32,7 @@ const getFallbackResponse = (problem: Problem, userCode: string): EvaluationResu
   };
 };
 
-// API 키를 올바르게 추출하여 Gemini API 초기화
-const getCleanApiKey = (): string => {
-  let apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (apiKey && apiKey.startsWith('VITE_GEMINI_API_KEY=')) {
-    apiKey = apiKey.replace('VITE_GEMINI_API_KEY=', '');
-  }
-  return apiKey || '';
-};
-
-const ai = new GoogleGenAI({ apiKey: getCleanApiKey() });
+const ai = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_GEMINI_API_KEY as string });
 
 const responseSchema = {
     type: Type.OBJECT,
