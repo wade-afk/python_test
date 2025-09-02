@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import CodeEditor from './CodeEditor';
 import Spinner from './Spinner';
-import { runPythonCode, detectCheating } from '../services/geminiService';
+import { runPythonCode } from '../services/geminiService';
 import type { Problem, EvaluationResult } from '../types';
 
 interface QuizProps {
@@ -52,13 +52,8 @@ const Quiz: React.FC<QuizProps> = ({
   const [codeOutput, setCodeOutput] = useState<string>('');
   const [isRunningCode, setIsRunningCode] = useState<boolean>(false);
   const [pyodideStatus, setPyodideStatus] = useState<string>('');
-  const [inputValues, setInputValues] = useState<string[]>([]);
   const [showInputForm, setShowInputForm] = useState<boolean>(false);
-  const [cheatingDetection, setCheatingDetection] = useState<{
-    isSuspicious: boolean;
-    reasons: string[];
-    confidence: number;
-  } | null>(null);
+  const [inputValues, setInputValues] = useState<string[]>([]);
 
   // Pyodide 상태 확인
   useEffect(() => {
@@ -76,22 +71,6 @@ const Quiz: React.FC<QuizProps> = ({
     checkPyodideStatus();
   }, []);
 
-  // 코드 변경 시 부정행위 감지
-  useEffect(() => {
-    if (userCode.trim()) {
-      const detection = detectCheating(userCode);
-      setCheatingDetection(detection);
-    } else {
-      setCheatingDetection(null);
-    }
-  }, [userCode]);
-
-  // input() 함수 개수 계산
-  const countInputFunctions = (code: string): number => {
-    const matches = code.match(/input\(/g);
-    return matches ? matches.length : 0;
-  };
-
   const handleRunCode = async () => {
     if (!userCode.trim()) {
       setCodeOutput('코드를 입력해주세요.');
@@ -99,11 +78,10 @@ const Quiz: React.FC<QuizProps> = ({
     }
 
     // input() 함수가 있는지 확인
-    const inputCount = countInputFunctions(userCode);
+    const hasInputFunction = userCode.includes('input(');
     
-    if (inputCount > 0 && inputValues.length !== inputCount) {
-      // input() 함수 개수에 맞게 입력 필드 초기화
-      setInputValues(new Array(inputCount).fill(''));
+    if (hasInputFunction && inputValues.length === 0) {
+      // input() 함수가 있으면 입력값을 먼저 받기
       setShowInputForm(true);
       return;
     }
@@ -120,24 +98,6 @@ const Quiz: React.FC<QuizProps> = ({
     } finally {
       setIsRunningCode(false);
     }
-  };
-
-  const handleInputSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputValues.some(val => val.trim() === '')) {
-      alert('모든 입력값을 입력해주세요.');
-      return;
-    }
-    
-    // 입력값을 설정하고 코드 실행
-    setShowInputForm(false);
-    handleRunCode();
-  };
-
-  const updateInputValue = (index: number, value: string) => {
-    const newValues = [...inputValues];
-    newValues[index] = value;
-    setInputValues(newValues);
   };
 
   return (
@@ -162,70 +122,30 @@ const Quiz: React.FC<QuizProps> = ({
         </div>
       )}
 
-      {/* 부정행위 감지 경고 */}
-      {cheatingDetection && cheatingDetection.isSuspicious && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 mr-2 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
-            </svg>
-            <span className="font-semibold text-red-800">⚠️ 부정행위 의심 코드 감지</span>
-            <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-              신뢰도: {cheatingDetection.confidence}%
-            </span>
-          </div>
-          <div className="text-sm text-red-700">
-            <p className="mb-2">다음과 같은 이유로 외부 자료 복사가 의심됩니다:</p>
-            <ul className="list-disc list-inside space-y-1">
-              {cheatingDetection.reasons.map((reason, index) => (
-                <li key={index}>{reason}</li>
-              ))}
-            </ul>
-            <p className="mt-2 text-xs text-red-600">
-              본인의 힘으로 코드를 작성했는지 확인해주세요.
-            </p>
-          </div>
-        </div>
-      )}
-
       <CodeEditor value={userCode} onChange={(e) => onCodeChange(e.target.value)} />
 
-      {/* input() 함수 입력 폼 */}
       {showInputForm && (
-        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h4 className="font-semibold text-yellow-800 mb-3">
-            입력값 설정 ({countInputFunctions(userCode)}개 input() 함수 감지)
-          </h4>
-          <p className="text-sm text-yellow-700 mb-3">
-            코드에 {countInputFunctions(userCode)}개의 input() 함수가 있습니다. 실행할 입력값을 설정해주세요.
-          </p>
-          
-          <form onSubmit={handleInputSubmit} className="space-y-3">
-            {inputValues.map((value, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-yellow-800 min-w-[80px]">
-                  입력 {index + 1}:
-                </label>
-                <input
-                  type="text"
-                  value={value}
-                  onChange={(e) => updateInputValue(index, e.target.value)}
-                  className="flex-1 px-3 py-2 border border-yellow-300 rounded text-sm"
-                  placeholder={`${index + 1}번째 입력값을 입력하세요`}
-                  required
-                />
-              </div>
-            ))}
-            
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-green-500 text-white font-semibold rounded text-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 transition-colors duration-200"
-              >
-                코드 실행
-              </button>
-            </div>
-          </form>
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+          <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">Input Required</h3>
+          <p className="text-blue-700 dark:text-blue-300">Please provide an input for the code.</p>
+          <input
+            type="text"
+            placeholder="Enter input (e.g., 'Hello')"
+            className="mt-2 px-3 py-2 border border-blue-300 rounded-md text-sm"
+            value={inputValues[0] || ''}
+            onChange={(e) => setInputValues([e.target.value])}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleRunCode();
+              }
+            }}
+          />
+          <button
+            onClick={handleRunCode}
+            className="mt-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition-colors duration-200"
+          >
+            Run Code
+          </button>
         </div>
       )}
 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import CodeEditor from './CodeEditor';
 import Spinner from './Spinner';
-import { runPythonCode, detectCheating } from '../services/geminiService';
+import { runPythonCode } from '../services/geminiService';
 import type { Problem, EvaluationResult } from '../types';
 
 interface QuizProps {
@@ -54,11 +54,6 @@ const Quiz: React.FC<QuizProps> = ({
   const [pyodideStatus, setPyodideStatus] = useState<string>('');
   const [inputValues, setInputValues] = useState<string[]>([]);
   const [showInputForm, setShowInputForm] = useState<boolean>(false);
-  const [cheatingDetection, setCheatingDetection] = useState<{
-    isSuspicious: boolean;
-    reasons: string[];
-    confidence: number;
-  } | null>(null);
 
   // Pyodide 상태 확인
   useEffect(() => {
@@ -75,16 +70,6 @@ const Quiz: React.FC<QuizProps> = ({
     
     checkPyodideStatus();
   }, []);
-
-  // 코드 변경 시 부정행위 감지
-  useEffect(() => {
-    if (userCode.trim()) {
-      const detection = detectCheating(userCode);
-      setCheatingDetection(detection);
-    } else {
-      setCheatingDetection(null);
-    }
-  }, [userCode]);
 
   // input() 함수 개수 계산
   const countInputFunctions = (code: string): number => {
@@ -158,32 +143,6 @@ const Quiz: React.FC<QuizProps> = ({
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
             </svg>
             {pyodideStatus}
-          </div>
-        </div>
-      )}
-
-      {/* 부정행위 감지 경고 */}
-      {cheatingDetection && cheatingDetection.isSuspicious && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 mr-2 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
-            </svg>
-            <span className="font-semibold text-red-800">⚠️ 부정행위 의심 코드 감지</span>
-            <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-              신뢰도: {cheatingDetection.confidence}%
-            </span>
-          </div>
-          <div className="text-sm text-red-700">
-            <p className="mb-2">다음과 같은 이유로 외부 자료 복사가 의심됩니다:</p>
-            <ul className="list-disc list-inside space-y-1">
-              {cheatingDetection.reasons.map((reason, index) => (
-                <li key={index}>{reason}</li>
-              ))}
-            </ul>
-            <p className="mt-2 text-xs text-red-600">
-              본인의 힘으로 코드를 작성했는지 확인해주세요.
-            </p>
           </div>
         </div>
       )}

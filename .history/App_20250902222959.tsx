@@ -56,6 +56,19 @@ const App: React.FC = () => {
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-slate-900 dark:text-white">Interactive Python Quiz</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-2">Test your Python skills with these challenges!</p>
+          
+          <div className="mt-4 p-4 bg-blue-100 border border-blue-400 text-blue-800 rounded-lg max-w-2xl mx-auto">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">New Feature!</span>
+            </div>
+            <p className="mt-1 text-sm">
+              코드 실행은 즉시 결과를 확인하고, 최종 채점은 AI가 한 번에 평가합니다.
+              API 사용량을 크게 줄였습니다!
+            </p>
+          </div>
         </header>
 
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-500">

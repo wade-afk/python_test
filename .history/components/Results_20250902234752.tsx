@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { evaluateAllProblems, detectCheating } from '../services/geminiService';
+import { evaluateAllProblems, detectCopyPaste } from '../services/geminiService';
 import type { Problem, EvaluationResult } from '../types';
 
 interface ResultsProps {
@@ -34,15 +34,16 @@ const Results: React.FC<ResultsProps> = ({ problems, userCodes, evaluations, onR
   const totalQuestions = problems.length;
   const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
 
-  // 부정행위 의심 코드 분석
+  // 복사 붙여넣기 의심 코드 분석
   const cheatingAnalysis = userCodes.map((code, index) => ({
     problemIndex: index,
     problem: problems[index],
     code,
-    detection: detectCheating(code)
+    detection: detectCopyPaste(code)
   }));
 
-  const suspiciousProblems = cheatingAnalysis.filter(item => item.detection.isSuspicious);
+  const suspiciousProblems = cheatingAnalysis.filter(item => item.detection.isCopyPaste);
+  const highRiskProblems = suspiciousProblems.filter(item => item.detection.confidence >= 80);
 
   let scoreColor = 'text-red-500';
   if (score >= 80) {
@@ -82,40 +83,87 @@ const Results: React.FC<ResultsProps> = ({ problems, userCodes, evaluations, onR
         </div>
       )}
 
-      {/* 부정행위 의심 코드 경고 (눈에 띄게 표시) */}
+      {/* 복사 붙여넣기 의심 코드 경고 (눈에 띄게 표시) */}
       {suspiciousProblems.length > 0 && (
-        <div className="mb-8 p-6 bg-red-100 border-2 border-red-400 rounded-lg">
+        <div className="mb-8 p-6 bg-gradient-to-r from-red-100 to-orange-100 border-2 border-red-400 rounded-lg shadow-lg">
           <div className="flex items-center mb-4">
             <svg className="w-8 h-8 mr-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
             </svg>
-            <h3 className="text-2xl font-bold text-red-800">🚨 부정행위 의심 코드 발견!</h3>
+            <h3 className="text-2xl font-bold text-red-800">🚨 복사 붙여넣기 의심 코드 발견!</h3>
           </div>
-          <p className="text-lg text-red-700 mb-4">
-            <strong>{suspiciousProblems.length}개 문제</strong>에서 외부 자료 복사가 의심됩니다.
-          </p>
-          <div className="space-y-3">
+          
+          <div className="mb-4">
+            <p className="text-lg text-red-700 mb-2">
+              <strong>{suspiciousProblems.length}개 문제</strong>에서 외부 자료 복사가 의심됩니다.
+            </p>
+            {highRiskProblems.length > 0 && (
+              <p className="text-red-600 font-semibold">
+                ⚠️ 특히 <strong>{highRiskProblems.length}개 문제</strong>는 높은 위험도(80% 이상)입니다!
+              </p>
+            )}
+          </div>
+
+          {/* 의심 문제 요약 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {suspiciousProblems.map((item) => (
-              <div key={item.problemIndex} className="p-4 bg-red-50 border border-red-300 rounded-lg">
+              <div key={item.problemIndex} className="p-3 bg-red-50 border border-red-300 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-bold text-red-800">
                     문제 {item.problemIndex + 1}: {item.problem.title}
                   </h4>
-                  <span className="px-3 py-1 bg-red-200 text-red-800 text-sm font-semibold rounded-full">
-                    신뢰도: {item.detection.confidence}%
+                  <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                    item.detection.confidence >= 80 
+                      ? 'bg-red-200 text-red-800' 
+                      : 'bg-orange-200 text-orange-800'
+                  }`}>
+                    {item.detection.confidence}%
                   </span>
                 </div>
-                <div className="text-sm text-red-700">
-                  <p className="mb-2">의심 사유:</p>
+                <div className="text-xs text-red-700">
+                  <p className="mb-1">의심 사유:</p>
                   <ul className="list-disc list-inside space-y-1">
-                    {item.detection.reasons.map((reason, index) => (
-                      <li key={index}>{reason}</li>
+                    {item.detection.reasons.slice(0, 2).map((reason, index) => (
+                      <li key={index} className="truncate">{reason}</li>
                     ))}
+                    {item.detection.reasons.length > 2 && (
+                      <li className="text-red-600">...외 {item.detection.reasons.length - 2}개</li>
+                    )}
                   </ul>
                 </div>
               </div>
             ))}
           </div>
+
+          {/* 상세 분석 결과 */}
+          <div className="bg-white p-4 rounded-lg border border-red-300">
+            <h4 className="font-semibold text-red-800 mb-3">📊 상세 분석 결과</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{suspiciousProblems.length}</div>
+                <div className="text-red-700">의심 문제</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {Math.round(suspiciousProblems.reduce((sum, item) => sum + item.detection.confidence, 0) / suspiciousProblems.length)}
+                </div>
+                <div className="text-orange-700">평균 신뢰도</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {suspiciousProblems.filter(item => item.detection.details.hasComplexStructure).length}
+                </div>
+                <div className="text-blue-700">복잡한 구조</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {suspiciousProblems.filter(item => item.detection.details.hasProfessionalNaming).length}
+                </div>
+                <div className="text-purple-700">전문적 용어</div>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-4 p-3 bg-red-200 rounded-lg">
             <p className="text-red-800 font-semibold text-center">
               ⚠️ 이 결과는 부정행위 의심으로 인해 재검토가 필요할 수 있습니다.
@@ -130,40 +178,58 @@ const Results: React.FC<ResultsProps> = ({ problems, userCodes, evaluations, onR
         </h3>
         {problems.map((problem, index) => {
           const cheatingInfo = cheatingAnalysis[index];
-          const isSuspicious = cheatingInfo.detection.isSuspicious;
+          const isSuspicious = cheatingInfo.detection.isCopyPaste;
+          const isHighRisk = cheatingInfo.detection.confidence >= 80;
           
           return (
-            <div key={index} className={`p-4 rounded-lg ${
-              isSuspicious 
-                ? 'bg-red-50 border-2 border-red-300' 
-                : 'bg-slate-50 dark:bg-slate-700/50'
+            <div key={index} className={`p-4 rounded-lg border-2 ${
+              isHighRisk 
+                ? 'bg-red-50 border-red-400' 
+                : isSuspicious 
+                  ? 'bg-orange-50 border-orange-300' 
+                  : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200'
             }`}>
               <div className="flex items-center justify-between mb-2">
                 <h4 className={`font-semibold ${
-                  isSuspicious 
+                  isHighRisk 
                     ? 'text-red-800' 
-                    : 'text-slate-800 dark:text-slate-100'
+                    : isSuspicious 
+                      ? 'text-orange-800' 
+                      : 'text-slate-800 dark:text-slate-100'
                 }`}>
                   {problem.title}
                 </h4>
                 {isSuspicious && (
-                  <span className="px-2 py-1 bg-red-200 text-red-800 text-xs font-bold rounded-full">
-                    ⚠️ 의심
+                  <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                    isHighRisk 
+                      ? 'bg-red-200 text-red-800' 
+                      : 'bg-orange-200 text-orange-800'
+                  }`}>
+                    {isHighRisk ? '🚨 높은 위험' : '⚠️ 의심'} ({cheatingInfo.detection.confidence}%)
                   </span>
                 )}
               </div>
               
               <pre className={`mt-2 p-3 rounded-md font-mono text-xs overflow-x-auto ${
-                isSuspicious 
+                isHighRisk 
                   ? 'bg-red-100 border border-red-300' 
-                  : 'bg-slate-900 text-white'
+                  : isSuspicious 
+                    ? 'bg-orange-100 border border-orange-300' 
+                    : 'bg-slate-900 text-white'
               }`}>
                 <code>{userCodes[index] || '// No code submitted'}</code>
               </pre>
               
               {isSuspicious && (
-                <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-700">
-                  <strong>부정행위 의심:</strong> {cheatingInfo.detection.reasons.join(', ')}
+                <div className={`mt-2 p-2 rounded text-xs ${
+                  isHighRisk 
+                    ? 'bg-red-100 border border-red-300 text-red-700' 
+                    : 'bg-orange-100 border border-orange-300 text-orange-700'
+                }`}>
+                  <strong>복사 붙여넣기 의심:</strong> {cheatingInfo.detection.reasons.slice(0, 2).join(', ')}
+                  {cheatingInfo.detection.reasons.length > 2 && (
+                    <span className="text-gray-600">...외 {cheatingInfo.detection.reasons.length - 2}개</span>
+                  )}
                 </div>
               )}
               

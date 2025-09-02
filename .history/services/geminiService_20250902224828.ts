@@ -6,156 +6,6 @@ interface ImportMetaEnv {
   readonly VITE_GEMINI_API_KEY: string;
 }
 
-// 부정행위 의심 코드 감지 함수
-export const detectCheating = (userCode: string): {
-  isSuspicious: boolean;
-  reasons: string[];
-  confidence: number;
-} => {
-  const reasons: string[] = [];
-  let confidence = 0;
-
-  // 1. 코드 길이 체크 (너무 길면 의심)
-  if (userCode.length > 500) {
-    reasons.push("코드가 비정상적으로 길어 복사 붙여넣기 의심");
-    confidence += 30;
-  }
-
-  // 2. 복잡한 코드 구조 체크 (학생 수준을 벗어나는 복잡성)
-  const complexPatterns = [
-    /import\s+\w+/g,           // import 문
-    /class\s+\w+/g,            // 클래스 정의
-    /def\s+\w+\s*\([^)]*\)/g,  // 함수 정의
-    /try\s*:/g,                // try-except 구문
-    /with\s+\w+/g,             // with 문
-    /lambda\s+/g,              // lambda 함수
-    /list\s*\(/g,              // list() 함수
-    /dict\s*\(/g,              // dict() 함수
-    /set\s*\(/g,               // set() 함수
-    /enumerate\s*\(/g,         // enumerate 함수
-    /zip\s*\(/g,               // zip 함수
-    /map\s*\(/g,               // map 함수
-    /filter\s*\(/g,            // filter 함수
-    /sorted\s*\(/g,            // sorted 함수
-    /reversed\s*\(/g,          // reversed 함수
-    /any\s*\(/g,               // any 함수
-    /all\s*\(/g,               // all 함수
-    /sum\s*\(/g,               // sum 함수
-    /max\s*\(/g,               // max 함수
-    /min\s*\(/g,               // min 함수
-  ];
-
-  let complexCount = 0;
-  complexPatterns.forEach(pattern => {
-    const matches = userCode.match(pattern);
-    if (matches) {
-      complexCount += matches.length;
-    }
-  });
-
-  if (complexCount > 3) {
-    reasons.push(`고급 Python 기능 사용 (${complexCount}개) - 학생 수준을 벗어남`);
-    confidence += Math.min(complexCount * 10, 40);
-  }
-
-  // 3. 주석 체크 (너무 상세한 주석은 의심)
-  const commentLines = (userCode.match(/#.*$/gm) || []).length;
-  const totalLines = userCode.split('\n').length;
-  const commentRatio = commentLines / totalLines;
-
-  if (commentRatio > 0.3 && commentLines > 2) {
-    reasons.push("과도하게 상세한 주석 - 외부 자료 복사 의심");
-    confidence += 25;
-  }
-
-  // 4. 변수명 체크 (너무 전문적인 변수명)
-  const professionalVars = [
-    'algorithm', 'implementation', 'optimization', 'complexity',
-    'efficiency', 'performance', 'robust', 'scalable',
-    'maintainable', 'readable', 'concise', 'elegant'
-  ];
-
-  const hasProfessionalVars = professionalVars.some(varName => 
-    userCode.toLowerCase().includes(varName)
-  );
-
-  if (hasProfessionalVars) {
-    reasons.push("전문적인 변수명 사용 - 외부 자료 참조 의심");
-    confidence += 20;
-  }
-
-  // 5. 코드 스타일 체크 (일관성 없는 들여쓰기나 스타일)
-  const inconsistentIndentation = /^( {2,}|\t+)/gm;
-  const lines = userCode.split('\n');
-  let indentationTypes = new Set();
-  
-  lines.forEach(line => {
-    if (line.match(/^\s+/)) {
-      if (line.startsWith(' ')) {
-        indentationTypes.add('space');
-      } else if (line.startsWith('\t')) {
-        indentationTypes.add('tab');
-      }
-    }
-  });
-
-  if (indentationTypes.size > 1) {
-    reasons.push("일관성 없는 들여쓰기 - 복사 붙여넣기 의심");
-    confidence += 15;
-  }
-
-  // 6. 에러 처리 체크 (너무 완벽한 에러 처리)
-  const errorHandlingPatterns = [
-    /except\s+Exception/g,
-    /except\s+\w+Error/g,
-    /finally\s*:/g,
-    /raise\s+\w+/g
-  ];
-
-  let errorHandlingCount = 0;
-  errorHandlingPatterns.forEach(pattern => {
-    const matches = userCode.match(pattern);
-    if (matches) {
-      errorHandlingCount += matches.length;
-    }
-  });
-
-  if (errorHandlingCount > 1) {
-    reasons.push("과도한 에러 처리 - 외부 자료 복사 의심");
-    confidence += 20;
-  }
-
-  // 7. 문자열 포맷팅 체크 (f-string 등 고급 기능)
-  const advancedStringFeatures = [
-    /f["']/g,                  // f-string
-    /\.format\s*\(/g,          // .format() 메서드
-    /%[sdif]/g,                // % 포맷팅
-    /\.join\s*\(/g             // .join() 메서드
-  ];
-
-  let advancedStringCount = 0;
-  advancedStringFeatures.forEach(pattern => {
-    const matches = userCode.match(pattern);
-    if (matches) {
-      advancedStringCount += matches.length;
-    }
-  });
-
-  if (advancedStringCount > 2) {
-    reasons.push("고급 문자열 처리 기능 과다 사용");
-    confidence += 15;
-  }
-
-  // 최종 판정
-  const isSuspicious = confidence >= 50;
-  
-  return {
-    isSuspicious,
-    reasons,
-    confidence: Math.min(confidence, 100)
-  };
-};
-
 // Pyodide 초기화 상태
 let pyodide: any = null;
 let isPyodideLoading = false;
@@ -247,7 +97,7 @@ const getCleanApiKey = (): string => {
 const ai = new GoogleGenAI({ apiKey: getCleanApiKey() });
 
 // Python 코드 실행 결과만 반환하는 함수 (Pyodide 사용)
-export const runPythonCode = async (userCode: string, userInputs: string[] = []): Promise<{ output: string; hasError: boolean }> => {
+export const runPythonCode = async (userCode: string): Promise<{ output: string; hasError: boolean }> => {
   try {
     // Pyodide 초기화
     const pyodideInstance = await initializePyodide();
@@ -261,7 +111,6 @@ export const runPythonCode = async (userCode: string, userInputs: string[] = [])
 
     // Python 코드 실행
     console.log('Python 코드 실행 중:', userCode);
-    console.log('사용자 입력값:', userInputs);
     
     // stdout을 캡처하기 위한 설정
     let output = '';
@@ -275,29 +124,24 @@ export const runPythonCode = async (userCode: string, userInputs: string[] = [])
       console.log('Python 출력:', message);
     });
 
-    // input 함수를 오버라이드하여 사용자 입력값 제공
+    // input 함수를 오버라이드하여 기본값 제공
     let inputCounter = 0;
+    const defaultInputs = [
+      "사용자", "Python", "Hello", "World", "123", "테스트", "코드", "실행", "웹", "브라우저"
+    ];
+    
     pyodideInstance.globals.set('input', (prompt?: string) => {
       if (prompt) {
         output += `${prompt}`;
       }
       
-      let inputValue: string;
-      if (inputCounter < userInputs.length) {
-        // 사용자가 제공한 입력값 사용
-        inputValue = userInputs[inputCounter];
-        console.log(`Python input() 호출 ${inputCounter + 1}: ${prompt || ''} -> ${inputValue} (사용자 입력)`);
-      } else {
-        // 기본값 사용
-        const defaultInputs = ["사용자", "Python", "Hello", "World", "123", "테스트", "코드", "실행", "웹", "브라우저"];
-        inputValue = defaultInputs[inputCounter % defaultInputs.length];
-        console.log(`Python input() 호출 ${inputCounter + 1}: ${prompt || ''} -> ${inputValue} (기본값)`);
-      }
-      
+      const defaultValue = defaultInputs[inputCounter % defaultInputs.length];
       inputCounter++;
-      output += `${inputValue}\n`;
       
-      return inputValue;
+      output += `${defaultValue}\n`;
+      console.log(`Python input() 호출: ${prompt || ''} -> ${defaultValue}`);
+      
+      return defaultValue;
     });
 
     try {

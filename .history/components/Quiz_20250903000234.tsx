@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import CodeEditor from './CodeEditor';
 import Spinner from './Spinner';
-import { runPythonCode, detectCheating } from '../services/geminiService';
+import { runPythonCode, detectCopyPaste } from '../services/geminiService';
 import type { Problem, EvaluationResult } from '../types';
 
 interface QuizProps {
@@ -54,10 +54,19 @@ const Quiz: React.FC<QuizProps> = ({
   const [pyodideStatus, setPyodideStatus] = useState<string>('');
   const [inputValues, setInputValues] = useState<string[]>([]);
   const [showInputForm, setShowInputForm] = useState<boolean>(false);
-  const [cheatingDetection, setCheatingDetection] = useState<{
-    isSuspicious: boolean;
+  const [copyPasteDetection, setCopyPasteDetection] = useState<{
+    isCopyPaste: boolean;
     reasons: string[];
     confidence: number;
+    details: {
+      lineCount: number;
+      charCount: number;
+      hasComplexStructure: boolean;
+      hasProfessionalNaming: boolean;
+      hasExcessiveComments: boolean;
+      hasAdvancedFeatures: boolean;
+      hasInconsistentStyle: boolean;
+    };
   } | null>(null);
 
   // Pyodide 상태 확인
@@ -76,13 +85,13 @@ const Quiz: React.FC<QuizProps> = ({
     checkPyodideStatus();
   }, []);
 
-  // 코드 변경 시 부정행위 감지
+  // 코드 변경 시 복사 붙여넣기 감지
   useEffect(() => {
     if (userCode.trim()) {
-      const detection = detectCheating(userCode);
-      setCheatingDetection(detection);
+      const detection = detectCopyPaste(userCode);
+      setCopyPasteDetection(detection);
     } else {
-      setCheatingDetection(null);
+      setCopyPasteDetection(null);
     }
   }, [userCode]);
 
@@ -162,25 +171,44 @@ const Quiz: React.FC<QuizProps> = ({
         </div>
       )}
 
-      {/* 부정행위 감지 경고 */}
-      {cheatingDetection && cheatingDetection.isSuspicious && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+      {/* 복사 붙여넣기 감지 경고 */}
+      {copyPasteDetection && copyPasteDetection.isCopyPaste && (
+        <div className={`mb-4 p-4 rounded-lg border-2 ${
+          copyPasteDetection.confidence >= 80 
+            ? 'bg-red-50 border-red-300' 
+            : 'bg-orange-50 border-orange-300'
+        }`}>
           <div className="flex items-center mb-2">
             <svg className="w-5 h-5 mr-2 text-red-600" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
             </svg>
-            <span className="font-semibold text-red-800">⚠️ 부정행위 의심 코드 감지</span>
-            <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-              신뢰도: {cheatingDetection.confidence}%
+            <span className="font-semibold text-red-800">
+              {copyPasteDetection.confidence >= 80 ? '🚨 높은 위험' : '⚠️ 의심'} 복사 붙여넣기 코드 감지
+            </span>
+            <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+              copyPasteDetection.confidence >= 80 
+                ? 'bg-red-200 text-red-800' 
+                : 'bg-orange-200 text-orange-800'
+            }`}>
+              신뢰도: {copyPasteDetection.confidence}%
             </span>
           </div>
           <div className="text-sm text-red-700">
             <p className="mb-2">다음과 같은 이유로 외부 자료 복사가 의심됩니다:</p>
             <ul className="list-disc list-inside space-y-1">
-              {cheatingDetection.reasons.map((reason, index) => (
+              {copyPasteDetection.reasons.slice(0, 3).map((reason, index) => (
                 <li key={index}>{reason}</li>
               ))}
+              {copyPasteDetection.reasons.length > 3 && (
+                <li className="text-red-600">...외 {copyPasteDetection.reasons.length - 3}개</li>
+              )}
             </ul>
+            <div className="mt-2 p-2 bg-white rounded border text-xs">
+              <strong>코드 통계:</strong> {copyPasteDetection.details.lineCount}줄, {copyPasteDetection.details.charCount}자
+              {copyPasteDetection.details.hasComplexStructure && <span className="ml-2 text-blue-600">• 복잡한 구조</span>}
+              {copyPasteDetection.details.hasProfessionalNaming && <span className="ml-2 text-purple-600">• 전문적 용어</span>}
+              {copyPasteDetection.details.hasAdvancedFeatures && <span className="ml-2 text-green-600">• 고급 기능</span>}
+            </div>
             <p className="mt-2 text-xs text-red-600">
               본인의 힘으로 코드를 작성했는지 확인해주세요.
             </p>
