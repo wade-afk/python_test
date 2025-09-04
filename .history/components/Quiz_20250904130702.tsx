@@ -257,52 +257,28 @@ const Quiz: React.FC<QuizProps> = ({
           </pre>
           
           {/* 무한 루프 경고 메시지 */}
-          {(codeOutput.includes('무한 루프 감지') || codeOutput.includes('while 루프 무한 반복 감지') || codeOutput.includes('실행 시간 초과')) && (
-            <div className="mt-3 p-4 bg-red-50 border border-red-300 rounded-lg">
-              <div className="flex items-center mb-3">
-                <svg className="w-6 h-6 mr-2 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+          {codeOutput.includes('무한 루프 감지') && (
+            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-300 rounded-lg">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 mr-2 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
                 </svg>
-                <span className="font-bold text-red-800 text-lg">🚨 무한 루프 감지!</span>
+                <span className="font-semibold text-yellow-800">무한 루프 감지!</span>
               </div>
-              
-              <div className="bg-red-100 p-3 rounded-lg mb-3">
-                <p className="text-sm text-red-800 font-semibold mb-2">
-                  코드에서 무한 루프가 감지되어 자동으로 중단되었습니다.
-                </p>
-                <p className="text-sm text-red-700">
-                  <strong>while 루프</strong>를 사용할 때는 반드시 <strong>루프를 종료하는 조건</strong>을 포함해야 합니다.
-                </p>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="bg-white p-3 rounded border border-red-200">
-                  <h4 className="font-semibold text-red-800 mb-2">❌ 잘못된 코드 (무한 루프):</h4>
-                  <pre className="text-xs bg-red-50 p-2 rounded border">
-{`a = int(input())
-while a > 0:
-    print("양수")
-# a 값을 변경하지 않아서 무한 루프 발생!
-print("음수")`}
-                  </pre>
-                </div>
-                
-                <div className="bg-white p-3 rounded border border-green-200">
-                  <h4 className="font-semibold text-green-800 mb-2">✅ 올바른 코드:</h4>
-                  <pre className="text-xs bg-green-50 p-2 rounded border">
-{`a = int(input())
+              <p className="text-sm text-yellow-700 mt-1">
+                코드에서 무한 루프가 감지되어 자동으로 중단되었습니다. 
+                <strong>while 루프</strong>를 사용할 때는 반드시 <strong>루프를 종료하는 조건</strong>을 포함해야 합니다.
+              </p>
+              <div className="mt-2 text-xs text-yellow-600">
+                <p><strong>예시:</strong></p>
+                <pre className="mt-1 p-2 bg-yellow-100 rounded text-xs">
+{`# 올바른 while 루프
+a = int(input())
 while a > 0:
     print("양수")
     a = a - 1  # 루프를 종료하는 조건
 print("음수")`}
-                  </pre>
-                </div>
-              </div>
-              
-              <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
-                <p className="text-xs text-blue-800">
-                  <strong>💡 팁:</strong> while 루프에서는 반복문 내부에서 조건을 변경하는 변수를 수정해야 합니다.
-                </p>
+                </pre>
               </div>
             </div>
           )}

@@ -186,11 +186,11 @@ const initializePyodide = async (): Promise<any> => {
       document.head.appendChild(script);
     });
     
-                    // @ts-ignore - Pyodide가 전역에 로드됨
-                if ((window as any).loadPyodide) {
-                  pyodide = await (window as any).loadPyodide({
-                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
-                  });
+    // @ts-ignore - Pyodide가 전역에 로드됨
+    if (window.loadPyodide) {
+      pyodide = await window.loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+      });
       console.log('Pyodide 로딩 완료!');
       return pyodide;
     } else {
@@ -302,19 +302,8 @@ export const runPythonCode = async (userCode: string, userInputs: string[] = [])
 
     // 무한 루프 감지를 위한 설정
     let executionCount = 0;
-    const maxExecutionCount = 500; // 최대 실행 횟수 제한 (더 엄격하게)
+    const maxExecutionCount = 1000; // 최대 실행 횟수 제한
     let isInfiniteLoop = false;
-    
-    // while 루프 감지를 위한 정규식
-    const whileLoopRegex = /while\s+[^:]+:/g;
-    const hasWhileLoop = whileLoopRegex.test(userCode);
-    
-    // 무한 루프 위험도 평가
-    let riskLevel = 'low';
-    if (hasWhileLoop) {
-      riskLevel = 'high';
-      console.log('⚠️ while 루프 감지됨 - 무한 루프 위험도 높음');
-    }
 
     // 무한 루프 감지를 위한 코드 래핑
     const wrappedCode = `

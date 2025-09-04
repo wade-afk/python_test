@@ -186,11 +186,11 @@ const initializePyodide = async (): Promise<any> => {
       document.head.appendChild(script);
     });
     
-                    // @ts-ignore - Pyodide가 전역에 로드됨
-                if ((window as any).loadPyodide) {
-                  pyodide = await (window as any).loadPyodide({
-                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
-                  });
+    // @ts-ignore - Pyodide가 전역에 로드됨
+    if (window.loadPyodide) {
+      pyodide = await window.loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+      });
       console.log('Pyodide 로딩 완료!');
       return pyodide;
     } else {
@@ -302,116 +302,52 @@ export const runPythonCode = async (userCode: string, userInputs: string[] = [])
 
     // 무한 루프 감지를 위한 설정
     let executionCount = 0;
-    const maxExecutionCount = 500; // 최대 실행 횟수 제한 (더 엄격하게)
+    const maxExecutionCount = 1000; // 최대 실행 횟수 제한
     let isInfiniteLoop = false;
-    
-    // while 루프 감지를 위한 정규식
-    const whileLoopRegex = /while\s+[^:]+:/g;
-    const hasWhileLoop = whileLoopRegex.test(userCode);
-    
-    // 무한 루프 위험도 평가
-    let riskLevel = 'low';
-    if (hasWhileLoop) {
-      riskLevel = 'high';
-      console.log('⚠️ while 루프 감지됨 - 무한 루프 위험도 높음');
-    }
 
     // 무한 루프 감지를 위한 코드 래핑
     const wrappedCode = `
 import time
 import sys
-import threading
 
 # 무한 루프 감지 설정
 execution_count = 0
 max_executions = ${maxExecutionCount}
 start_time = time.time()
-max_execution_time = 3  # 3초 제한
-loop_detected = False
+max_execution_time = 5  # 5초 제한
 
-# while 루프 감지 변수
-while_loop_count = 0
-max_while_iterations = 50  # while 루프 최대 반복 횟수
-
-# 원본 print 함수 저장
-original_print = print
-
-# 안전한 print 함수 (무한 루프 감지용)
-def safe_print(*args, **kwargs):
-    global execution_count, loop_detected
+# 원본 코드를 함수로 래핑
+def execute_user_code():
+    global execution_count
     execution_count += 1
     
     # 실행 횟수 체크
     if execution_count > max_executions:
         print("⚠️ 무한 루프 감지! 코드 실행을 중단합니다.")
         print(f"실행 횟수 제한 ({max_executions}회)을 초과했습니다.")
-        loop_detected = True
         return
     
     # 실행 시간 체크
     if time.time() - start_time > max_execution_time:
         print("⚠️ 실행 시간 초과! 코드 실행을 중단합니다.")
         print(f"최대 실행 시간 ({max_execution_time}초)을 초과했습니다.")
-        loop_detected = True
         return
-    
-    # 원본 print 함수 호출
-    original_print(*args, **kwargs)
-
-# print 함수 오버라이드
-print = safe_print
-
-# while 루프 래퍼 함수
-def safe_while(condition_func, body_func):
-    global while_loop_count, loop_detected
-    while_loop_count = 0
-    
-    while condition_func() and not loop_detected:
-        while_loop_count += 1
-        
-        # while 루프 반복 횟수 체크
-        if while_loop_count > max_while_iterations:
-            print("⚠️ while 루프 무한 반복 감지! 루프를 강제 종료합니다.")
-            print(f"while 루프 반복 횟수 제한 ({max_while_iterations}회)을 초과했습니다.")
-            loop_detected = True
-            break
-        
-        # 실행 시간 체크
-        if time.time() - start_time > max_execution_time:
-            print("⚠️ while 루프 실행 시간 초과! 루프를 강제 종료합니다.")
-            loop_detected = True
-            break
-        
-        try:
-            body_func()
-        except Exception as e:
-            print(f"while 루프 내부 오류: {e}")
-            break
-
-# 원본 코드를 안전하게 실행
-try:
-    # while 루프가 있는지 미리 체크
-    if 'while' in '''${userCode}''':
-        print("ℹ️ while 루프가 감지되었습니다. 무한 루프 방지를 위해 실행을 모니터링합니다.")
     
     # 원본 코드 실행
     ${userCode.replace(/\n/g, '\n    ')}
     
-    if loop_detected:
-        print("\\n🔴 코드 실행이 무한 루프로 인해 중단되었습니다.")
-        print("💡 while 루프를 사용할 때는 반드시 루프를 종료하는 조건을 포함해야 합니다.")
-        print("\\n📝 올바른 while 루프 예시:")
-        print("   a = int(input())")
-        print("   while a > 0:")
-        print("       print('양수')")
-        print("       a = a - 1  # 루프를 종료하는 조건")
-        print("   print('음수')")
-    
+    # while 루프 감지 및 제한
+    if 'while' in '''${userCode}''':
+        print("ℹ️ while 루프가 감지되었습니다. 무한 루프를 방지하기 위해 실행을 제한합니다.")
+        if execution_count > 100:  # while 루프의 경우 더 엄격한 제한
+            print("⚠️ while 루프 실행 횟수 제한 (100회)을 초과했습니다.")
+            return
+
+# 코드 실행
+try:
+    execute_user_code()
 except Exception as e:
     print(f"실행 중 오류 발생: {e}")
-finally:
-    # 원본 print 함수 복원
-    print = original_print
 `;
 
     try {

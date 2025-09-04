@@ -186,11 +186,11 @@ const initializePyodide = async (): Promise<any> => {
       document.head.appendChild(script);
     });
     
-                    // @ts-ignore - Pyodide가 전역에 로드됨
-                if ((window as any).loadPyodide) {
-                  pyodide = await (window as any).loadPyodide({
-                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
-                  });
+    // @ts-ignore - Pyodide가 전역에 로드됨
+    if (window.loadPyodide) {
+      pyodide = await window.loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+      });
       console.log('Pyodide 로딩 완료!');
       return pyodide;
     } else {
