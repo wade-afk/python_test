@@ -1,12 +1,6 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
-  readonly VITE_OPENAI_API_KEY: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+// API 키는 이제 Cloudflare Functions에서만 사용되므로 클라이언트 타입 정의는 제거됨
 
 // Pyodide 전역 타입 정의
 declare global {

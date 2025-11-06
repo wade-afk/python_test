@@ -1,15 +1,11 @@
 import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
+export default defineConfig(() => {
+  // API 키는 이제 Cloudflare Functions에서만 사용되므로 클라이언트 빌드에서는 제거됨
   
   return {
     base: '/',
-    define: {
-      // 환경 변수를 명시적으로 정의
-      'import.meta.env.VITE_OPENAI_API_KEY': JSON.stringify(env.VITE_OPENAI_API_KEY || '')
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
