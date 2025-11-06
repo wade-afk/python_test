@@ -1,9 +1,9 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import OpenAI from 'openai';
 import type { Problem, EvaluationResult } from '../types';
 
 // Vite 환경 변수 타입 정의
 interface ImportMetaEnv {
-  readonly VITE_GEMINI_API_KEY: string;
+  readonly VITE_OPENAI_API_KEY: string;
 }
 
 // 부정행위 의심 코드 감지 함수
@@ -207,11 +207,11 @@ const initializePyodide = async (): Promise<any> => {
 // API 키 체크 함수
 export const hasValidApiKey = (): boolean => {
   // Vite에서는 import.meta.env를 사용해야 함
-  let apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  let apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   
   // 만약 전체 문자열이 들어왔다면 API 키 부분만 추출
-  if (apiKey && apiKey.startsWith('VITE_GEMINI_API_KEY=')) {
-    apiKey = apiKey.replace('VITE_GEMINI_API_KEY=', '');
+  if (apiKey && apiKey.startsWith('VITE_OPENAI_API_KEY=')) {
+    apiKey = apiKey.replace('VITE_OPENAI_API_KEY=', '');
   }
   
   // 더 자세한 로깅
@@ -228,23 +228,26 @@ export const hasValidApiKey = (): boolean => {
 // API 키가 없을 때의 fallback 응답
 const getFallbackResponse = (problem: Problem, userCode: string): EvaluationResult => {
   return {
-    output: "API key is required for code evaluation. Please set your Gemini API key.",
+    output: "API key is required for code evaluation. Please set your OpenAI API key.",
     isCorrect: false,
     feedback: "Code evaluation is currently unavailable. Please check your API key configuration.",
     syntaxError: null,
   };
 };
 
-// API 키를 올바르게 추출하여 Gemini API 초기화
+// API 키를 올바르게 추출하여 OpenAI API 초기화
 const getCleanApiKey = (): string => {
-  let apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (apiKey && apiKey.startsWith('VITE_GEMINI_API_KEY=')) {
-    apiKey = apiKey.replace('VITE_GEMINI_API_KEY=', '');
+  let apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  if (apiKey && apiKey.startsWith('VITE_OPENAI_API_KEY=')) {
+    apiKey = apiKey.replace('VITE_OPENAI_API_KEY=', '');
   }
   return apiKey || '';
 };
 
-const ai = new GoogleGenAI({ apiKey: getCleanApiKey() });
+const openai = new OpenAI({
+  apiKey: getCleanApiKey(),
+  dangerouslyAllowBrowser: true // 브라우저에서 사용하기 위해 필요
+});
 
 // Python 코드 실행 결과만 반환하는 함수 (Pyodide 사용)
 export const runPythonCode = async (userCode: string, userInputs: string[] = []): Promise<{ output: string; hasError: boolean }> => {
@@ -485,31 +488,55 @@ ${userCodes[index] || '코드 없음'}
 \`\`\`
 `).join('\n\n')}
 
-각 문제에 대해 다음 JSON 형식으로 응답해주세요:
-[
-  {
-    "output": "코드 실행 결과 또는 오류 메시지",
-    "isCorrect": true/false,
-    "feedback": "간단한 피드백",
-    "syntaxError": null 또는 {"line": 숫자, "message": "오류 메시지"}
-  }
-]
+각 문제에 대해 다음 JSON 형식으로 응답해주세요. 반드시 "results" 키를 가진 객체로 응답하세요:
 
-JSON만 응답하고 다른 텍스트는 포함하지 마세요.
+{
+  "results": [
+    {
+      "output": "코드 실행 결과 또는 오류 메시지",
+      "isCorrect": true/false,
+      "feedback": "간단한 피드백",
+      "syntaxError": null 또는 {"line": 숫자, "message": "오류 메시지"}
+    }
+  ]
+}
+
+JSON만 응답하고 다른 텍스트는 포함하지 마세요. 반드시 10개의 결과를 포함해야 합니다.
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are a Python programming expert. Evaluate student code and respond with valid JSON only."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
     });
 
-    const jsonString = response.text.trim();
-    const results = JSON.parse(jsonString);
+    const jsonString = response.choices[0]?.message?.content?.trim() || '{}';
+    const parsed = JSON.parse(jsonString);
+    
+    // OpenAI는 JSON 객체를 반환할 수 있으므로 배열로 변환
+    let results: any[] = [];
+    if (Array.isArray(parsed)) {
+      results = parsed;
+    } else if (parsed.results && Array.isArray(parsed.results)) {
+      results = parsed.results;
+    } else if (parsed.evaluations && Array.isArray(parsed.evaluations)) {
+      results = parsed.evaluations;
+    } else {
+      // 단일 객체인 경우 배열로 변환
+      results = [parsed];
+    }
 
-    if (Array.isArray(results) && results.length === problems.length) {
+    if (results.length === problems.length) {
       return results.map(result => ({
         output: result.output || '',
         isCorrect: result.isCorrect || false,
@@ -517,7 +544,14 @@ JSON만 응답하고 다른 텍스트는 포함하지 마세요.
         syntaxError: result.syntaxError || null,
       }));
     } else {
-      throw new Error("Invalid response format from API");
+      // 결과 개수가 맞지 않으면 빈 결과로 채움
+      console.warn(`Expected ${problems.length} results, got ${results.length}`);
+      return problems.map((_, index) => ({
+        output: results[index]?.output || '',
+        isCorrect: results[index]?.isCorrect || false,
+        feedback: results[index]?.feedback || '평가 결과를 생성할 수 없습니다.',
+        syntaxError: results[index]?.syntaxError || null,
+      }));
     }
   } catch (error) {
     console.error("Error evaluating all problems:", error);

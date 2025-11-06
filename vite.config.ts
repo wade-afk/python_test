@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
     base: '/',
     define: {
       // 환경 변수를 명시적으로 정의
-      'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || '')
+      'import.meta.env.VITE_OPENAI_API_KEY': JSON.stringify(env.VITE_OPENAI_API_KEY || '')
     },
     resolve: {
       alias: {
