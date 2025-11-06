@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* 기본 스타일 */
 body {
   margin: 0;
@@ -11,21 +15,4 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
-}
-
-/* Tailwind CSS가 로드되지 않을 경우를 위한 기본 스타일 */
-.bg-slate-100 {
-  background-color: #f1f5f9;
-}
-
-.bg-slate-900 {
-  background-color: #0f172a;
-}
-
-.dark .bg-slate-900 {
-  background-color: #0f172a;
-}
-
-.dark .bg-slate-100 {
-  background-color: #f1f5f9;
 }

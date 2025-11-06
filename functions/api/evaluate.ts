@@ -13,10 +13,20 @@ export const onRequestPost: PagesFunction<{ OPENAI_API_KEY: string }> = async ({
       return new Response(null, { headers: corsHeaders });
     }
 
-    // API 키 확인
-    if (!env.OPENAI_API_KEY) {
+    // API 키 확인 - 여러 가능한 환경 변수 이름 시도
+    const apiKey = env.OPENAI_API_KEY || (env as any).VITE_OPENAI_API_KEY || (env as any).OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      // 디버깅을 위한 환경 변수 정보 (프로덕션에서는 제거 가능)
+      const envKeys = Object.keys(env || {});
+      console.error('Available env keys:', envKeys);
+      
       return new Response(
-        JSON.stringify({ error: 'API key not configured' }),
+        JSON.stringify({ 
+          error: 'API key not configured',
+          details: 'Please set OPENAI_API_KEY in Cloudflare Pages environment variables',
+          availableKeys: envKeys.length > 0 ? envKeys : 'No environment variables found'
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -71,7 +81,7 @@ JSON만 응답하고 다른 텍스트는 포함하지 마세요. 반드시 ${pro
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',

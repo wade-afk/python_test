@@ -63,11 +63,15 @@ API 키는 이제 **서버 사이드(Cloudflare Functions)**에서만 사용되�
    - Build output directory: `dist`
    - Root directory: `/` (leave empty)
 4. **Environment variables 설정** (중요!):
-   - Go to Cloudflare Pages → Your Project → Settings → **Environment variables** 또는 **Secrets**
+   - Go to Cloudflare Pages → Your Project → **Settings** → **Functions** → **Environment variables**
+   - 또는 **Settings** → **Variables** → **Add variable**
    - **변수 이름**: `OPENAI_API_KEY` (⚠️ `VITE_` 접두사 없이!)
-   - **변수 값**: Your OpenAI API key (API 키 값만 입력)
-   - **Environment**: `Production`과 `Preview` 모두 체크
-   - ⚠️ **중요**: 이것은 **Secrets**로 설정하는 것을 권장합니다 (API 키는 민감 정보이므로)
+   - **변수 값**: Your OpenAI API key (API 키 값만 입력, 예: `sk-proj-...`)
+   - **Environment**: `Production`과 `Preview` 모두 체크 (또는 각각 설정)
+   - ⚠️ **중요**: 
+     - 이것은 **Secrets**로 설정하는 것을 강력히 권장합니다 (API 키는 민감 정보)
+     - Functions에서 사용되므로 `VITE_` 접두사가 **필요 없습니다**
+     - 환경 변수 변경 후 **반드시 재배포**해야 합니다
 5. **Functions 설정 확인**:
    - `functions/api/evaluate.ts` 파일이 루트에 있는지 확인
    - Cloudflare Pages는 자동으로 Functions 디렉토리를 인식합니다
