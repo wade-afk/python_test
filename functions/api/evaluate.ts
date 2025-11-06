@@ -46,18 +46,22 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
             envKeysCount: envKeys.length
           },
           instructions: [
-            '1. Go to Cloudflare Pages → Your Project → Settings',
-            '2. Click on "Functions" → "Environment variables" (or "Variables" → "Add variable")',
-            '3. Add variable: OPENAI_API_KEY (⚠️ NO VITE_ prefix!)',
-            '4. Set value to your OpenAI API key (e.g., sk-proj-...)',
-            '5. Select both Production and Preview environments',
-            '6. Click "Save"',
-            '7. Go to Deployments tab and click "Redeploy" on the latest deployment',
+            '📖 Full guide: See CLOUDFLARE_SETUP.md in the repository',
             '',
-            '⚠️ IMPORTANT:',
-            '- Variable name must be exactly: OPENAI_API_KEY',
-            '- Do NOT use VITE_OPENAI_API_KEY for Functions',
-            '- After adding the variable, you MUST redeploy for it to take effect'
+            'Quick steps:',
+            '1. Go to https://dash.cloudflare.com → Pages → Your Project',
+            '2. Settings → Variables → Add variable',
+            '3. Name: OPENAI_API_KEY (NO VITE_ prefix!)',
+            '4. Value: Your API key (e.g., sk-proj-...)',
+            '5. Select both Production AND Preview',
+            '6. Save',
+            '7. Deployments tab → Redeploy latest deployment',
+            '',
+            '⚠️ CRITICAL:',
+            '- Variable name: exactly "OPENAI_API_KEY"',
+            '- After adding, you MUST redeploy!',
+            '- Check browser console Debug info → allEnvKeys',
+            '- If OPENAI_API_KEY is not in the list, it\'s not set correctly'
           ]
         }),
         {
