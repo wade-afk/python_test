@@ -450,7 +450,16 @@ export const evaluateAllProblems = async (
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
       console.error('API evaluation error:', errorData);
-      throw new Error(errorData.error || 'Failed to evaluate code');
+      
+      // 디버깅 정보가 있으면 함께 표시
+      if (errorData.debug) {
+        console.error('Debug info:', errorData.debug);
+      }
+      if (errorData.instructions) {
+        console.error('Instructions:', errorData.instructions);
+      }
+      
+      throw new Error(errorData.error || errorData.details || 'Failed to evaluate code');
     }
 
     const results: EvaluationResult[] = await response.json();

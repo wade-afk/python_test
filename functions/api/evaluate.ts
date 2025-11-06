@@ -1,5 +1,5 @@
 // Cloudflare Pages Function - API 키를 서버 사이드에서만 사용
-export const onRequestPost: PagesFunction<{ OPENAI_API_KEY: string }> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction = async ({ request, env }) => {
   try {
     // CORS 헤더 설정
     const corsHeaders = {
@@ -14,18 +14,35 @@ export const onRequestPost: PagesFunction<{ OPENAI_API_KEY: string }> = async ({
     }
 
     // API 키 확인 - 여러 가능한 환경 변수 이름 시도
-    const apiKey = env.OPENAI_API_KEY || (env as any).VITE_OPENAI_API_KEY || (env as any).OPENAI_API_KEY;
+    const envAny = env as any;
+    const apiKey = env.OPENAI_API_KEY || envAny.OPENAI_API_KEY || envAny.VITE_OPENAI_API_KEY;
+    
+    // 디버깅을 위한 환경 변수 정보
+    const envKeys = Object.keys(env || {});
+    const envPreview = envKeys.length > 0 ? envKeys.slice(0, 5).join(', ') + (envKeys.length > 5 ? '...' : '') : 'No keys found';
     
     if (!apiKey) {
-      // 디버깅을 위한 환경 변수 정보 (프로덕션에서는 제거 가능)
-      const envKeys = Object.keys(env || {});
-      console.error('Available env keys:', envKeys);
+      console.error('API key not found. Available env keys:', envKeys);
       
       return new Response(
         JSON.stringify({ 
           error: 'API key not configured',
           details: 'Please set OPENAI_API_KEY in Cloudflare Pages environment variables',
-          availableKeys: envKeys.length > 0 ? envKeys : 'No environment variables found'
+          debug: {
+            checkedKeys: ['OPENAI_API_KEY', 'VITE_OPENAI_API_KEY'],
+            availableKeys: envKeys,
+            envPreview: envPreview,
+            envType: typeof env,
+            hasEnv: !!env
+          },
+          instructions: [
+            '1. Go to Cloudflare Pages → Your Project → Settings',
+            '2. Click on "Functions" → "Environment variables"',
+            '3. Add variable: OPENAI_API_KEY (no VITE_ prefix)',
+            '4. Set value to your OpenAI API key',
+            '5. Select both Production and Preview environments',
+            '6. Save and redeploy'
+          ]
         }),
         {
           status: 500,
