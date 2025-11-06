@@ -15,14 +15,23 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
 
     // API 키 확인 - 여러 가능한 환경 변수 이름 시도
     const envAny = env as any;
-    const apiKey = env.OPENAI_API_KEY || envAny.OPENAI_API_KEY || envAny.VITE_OPENAI_API_KEY;
     
-    // 디버깅을 위한 환경 변수 정보
+    // 디버깅을 위한 환경 변수 정보 (모든 키 확인)
     const envKeys = Object.keys(env || {});
-    const envPreview = envKeys.length > 0 ? envKeys.slice(0, 5).join(', ') + (envKeys.length > 5 ? '...' : '') : 'No keys found';
+    const allEnvKeys = envKeys.length > 0 ? envKeys.join(', ') : 'No keys found';
+    
+    // 여러 방식으로 API 키 접근 시도
+    const apiKey = 
+      env.OPENAI_API_KEY || 
+      envAny.OPENAI_API_KEY || 
+      envAny.VITE_OPENAI_API_KEY ||
+      (env as Record<string, string>)['OPENAI_API_KEY'] ||
+      (env as Record<string, string>)['VITE_OPENAI_API_KEY'];
     
     if (!apiKey) {
-      console.error('API key not found. Available env keys:', envKeys);
+      console.error('API key not found.');
+      console.error('Available env keys:', allEnvKeys);
+      console.error('Env object:', env);
       
       return new Response(
         JSON.stringify({ 
@@ -31,17 +40,24 @@ export const onRequestPost: PagesFunction = async ({ request, env }) => {
           debug: {
             checkedKeys: ['OPENAI_API_KEY', 'VITE_OPENAI_API_KEY'],
             availableKeys: envKeys,
-            envPreview: envPreview,
+            allEnvKeys: allEnvKeys,
             envType: typeof env,
-            hasEnv: !!env
+            hasEnv: !!env,
+            envKeysCount: envKeys.length
           },
           instructions: [
             '1. Go to Cloudflare Pages → Your Project → Settings',
-            '2. Click on "Functions" → "Environment variables"',
-            '3. Add variable: OPENAI_API_KEY (no VITE_ prefix)',
-            '4. Set value to your OpenAI API key',
+            '2. Click on "Functions" → "Environment variables" (or "Variables" → "Add variable")',
+            '3. Add variable: OPENAI_API_KEY (⚠️ NO VITE_ prefix!)',
+            '4. Set value to your OpenAI API key (e.g., sk-proj-...)',
             '5. Select both Production and Preview environments',
-            '6. Save and redeploy'
+            '6. Click "Save"',
+            '7. Go to Deployments tab and click "Redeploy" on the latest deployment',
+            '',
+            '⚠️ IMPORTANT:',
+            '- Variable name must be exactly: OPENAI_API_KEY',
+            '- Do NOT use VITE_OPENAI_API_KEY for Functions',
+            '- After adding the variable, you MUST redeploy for it to take effect'
           ]
         }),
         {
